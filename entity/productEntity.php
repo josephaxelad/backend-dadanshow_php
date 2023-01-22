@@ -23,6 +23,8 @@ class ProductEntity{
     
     protected  $createdAt;
 
+    protected  $weight;
+
     function getIdProduct() { 
         return $this->idProduct; 
    } 
@@ -86,6 +88,14 @@ class ProductEntity{
    function setCreatedAt($createdAt) {  
        $this->createdAt = $createdAt; 
    } 
+
+   function getWeight() { 
+        return $this->weight; 
+   } 
+
+   function setWeight($weight) {  
+       $this->weight = $weight; 
+   }
 
 }
 

@@ -24,7 +24,7 @@ class UserEntity{
 
     protected   $description;
 
-    protected   $adresseLivraison;
+    protected   $deliveryAddress;
 
     protected   $adresseFactutation;
 
@@ -33,6 +33,8 @@ class UserEntity{
     protected   $dateBirth;
     
     protected   $createdAt;
+
+    protected   $type;
 
     function getIdUser() { 
         return $this->idUser; 
@@ -98,12 +100,12 @@ class UserEntity{
        $this->description = $description; 
    } 
 
-   function getAdresseLivraison() { 
-    return $this->adresseLivraison; 
+   function getDeliveryAddress() { 
+    return $this->deliveryAddress; 
     } 
 
-    function setAdresseLivraison($adresseLivraison) {  
-    $this->adresseLivraison = $adresseLivraison; 
+    function setDeliveryAddress($deliveryAddress) {  
+    $this->deliveryAddress = $deliveryAddress; 
     } 
 
     function getAdresseFactutation() { 
@@ -136,6 +138,14 @@ class UserEntity{
 
    function setCreatedAt($createdAt) {  
        $this->createdAt = $createdAt; 
+   } 
+
+    function getType() { 
+        return $this->type; 
+   } 
+
+   function setType($type) {  
+       $this->type = $type; 
    } 
 
 }

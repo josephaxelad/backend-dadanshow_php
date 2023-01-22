@@ -11,13 +11,23 @@ class OrdersEntity{
 
     protected  $idUser;
 
+    protected  $emailUser;
+
     protected  $idProduct;
 
     protected  $quantity;
 
     protected  $price;
     
-    protected  $createdAd;
+    protected  $createDat;
+
+    protected  $cmdLine;
+
+    protected  $deliveryPrice;
+
+    protected  $state;
+
+    protected  $delivery;
 
     function getIdOrder() { 
         return $this->idOrder; 
@@ -59,13 +69,63 @@ class OrdersEntity{
        $this->price = $price; 
    } 
 
-   function getCreatedAd() { 
-        return $this->createdAd; 
+   function getCreatedat() { 
+        return $this->createDat; 
    } 
 
-   function setCreatedAd($createdAd) {  
-       $this->createdAd = $createdAd; 
+   function setCreatedat($createDat) {   
+       $this->createDat =$createDat; 
    } 
+
+   function getCmdLine()
+   {
+     return $this->cmdLine;
+   }
+
+   function setCmdLine($cmdLine)
+   {
+     $this->cmdLine = $cmdLine;
+   }
+
+   function getDeliveryPrice()
+   {
+     return $this->deliveryPrice;
+   }
+
+   function setDeliveryPrice($deliveryPrice)
+   {
+     $this->deliveryPrice = $deliveryPrice ;
+   }
+
+   function getState()
+   {
+     return $this->state;
+   }
+
+   function setState($state)
+   {
+     $this->state = $state ;
+   }
+
+   function getEmailUser()
+   {
+     return $this->emailUser;
+   }
+
+   function setEmailUser($emailUser)
+   {
+     $this->emailUser = $emailUser ;
+   }
+
+   function getDelivery()
+   {
+     return $this->delivery;
+   }
+
+   function setDelivery($delivery)
+   {
+     $this->delivery = $delivery ;
+   }
 
 }
 

@@ -19,6 +19,9 @@ class DataLayer{
         try {
             $this->connexion = new PDO($var,DB_USER,DB_PASSWORD);
             //echo "connexion réussie";
+            $this->connexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connexion->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
 
         } catch (PDOException $e) {
             echo $e->getMessage();
@@ -76,28 +79,47 @@ class DataLayer{
      */
 
     function createUser(UserEntity $user){
-        $sql = "INSERT INTO ".DB_NAME.".`customers` (sexe,pseudo,email,password,firstname,lastname,dateBirth)
-         VALUES (:sexe,:pseudo,:email,:password,:firstname,:lastname,:dateBirth)";
-         try {
-             $result = $this->connexion->prepare($sql);
-             $data = $result->execute(array(
-                ':sexe' => $user->getSexe(),
-                ':pseudo' => $user->getPseudo(),
-                ':email' => $user->getEmail(),
-                ':password' => sha1($user->getPassword()),
-                ':firstname' => $user->getFirstname(),
-                ':lastname' => $user->getLastname(),
-                ':dateBirth' => $user->getDateBirth()
-             ));
-             //var_dump($sql);
-             if($data){
-                 return $this->connexion->lastInsertId();
-             }else {
-                 return FALSE;
-             }
-         } catch (PDOException $th) {
-             return NULL;
-         }
+        $sql_ = "SELECT  COUNT(*) AS nb FROM ".DB_NAME.".`customers` WHERE email = :email";
+        try{
+            $result_ = $this->connexion->prepare($sql_);
+            $var_ = $result_->execute(array(
+                ':email'=>$user->getEmail()
+            ));
+
+            $data_ = $result_->fetch(PDO::FETCH_OBJ);
+
+            if ((int)$data_->nb<1) {
+                $sql = "INSERT INTO ".DB_NAME.".`customers` (email,password,firstname,lastname,type)
+                VALUES (:email,:password,:firstname,:lastname,:type)";
+
+                try {
+                    $result = $this->connexion->prepare($sql);
+                    $data = $result->execute(array(
+                    ':email' => $user->getEmail(),
+                    ':password' => sha1($user->getPassword()),
+                    ':firstname' => $user->getFirstname(),
+                    ':lastname' => $user->getLastname(),
+                    ':type' => $user->getType(),
+                    ));
+                    //var_dump($sql);
+                    if($data){
+                        return "Compte utilisateur créé avec succès";
+                        // return $this->connexion->lastInsertId();
+                    }else {
+                        return FALSE;
+                    }
+                } catch (PDOException $th) {
+                    return $th->getMessage();
+                }
+
+            } else {
+                // $dat =(object)$data_
+                return "L'utilisateur exite déja";
+            }
+            
+        }catch(PDOException $th){
+            return $th->getMessage();
+        }
     }
 
     /**
@@ -164,16 +186,19 @@ class DataLayer{
      * @return NULL Exception déclenchée
      */
     function createOrders(OrdersEntity $orders){
-        $sql = "INSERT INTO ".DB_NAME.".`orders`(`id_customers`, `id_product`, `quantity`, `price`)
-         VALUES (:idCustomer,:idProduct,:quantity,:price)";
+        $sql = "INSERT INTO ".DB_NAME.".`orders`(`email_user`, `price`, `createdat`, `cmd_line` ,`delivery_price`,`state`,`delivery`)
+         VALUES (:email_user,:price,:createdat,:cmd_line,:delivery_price,:state,:delivery)";
 
         try {
             $result = $this->connexion->prepare($sql);
             $data = $result->execute(array(
-                'idCustomer'=>$orders->getIdUser(),
-                ':idProduct'=>$orders->getIdProduct(),
-                ':quantity' => $orders->getQuantity(),
-                ':price' => $orders->getPrice()
+                ':email_user'=>$orders->getEmailUser(),
+                ':price'=>$orders->getPrice(),
+                ':createdat' => $orders->getCreatedat(),
+                ':cmd_line' => $orders->getCmdLine(),
+                ':delivery_price' => $orders->getDeliveryPrice(),
+                ':state' => $orders->getState(),
+                ':delivery' => $orders->getDelivery()
             ));
             if($data){
                 return $this->connexion->lastInsertId();
@@ -181,7 +206,8 @@ class DataLayer{
                 return FALSE;
             }
         } catch (PDOException $th) {
-            return NULL;
+            //return NULL;
+            echo $th->getMessage();
         }
     }
 
@@ -283,6 +309,7 @@ class DataLayer{
                $product->setImage($data->image);
                $product->setCategory($data->category);
                $product->setCreatedAt($data->createdat);
+               $product->setWeight($data->weight);
 
                $products[] = $product;
             }
@@ -368,6 +395,41 @@ class DataLayer{
             return NULL;
         }
     }
+
+    function getOrdersByUser($userEmail){
+    $sql = "SELECT * FROM ".DB_NAME.".`orders` WHERE email_user=:userEmail ORDER BY id DESC" ;
+
+    try {
+        $result = $this->connexion->prepare($sql);
+        $var = $result->execute(array(":userEmail"=>$userEmail));
+        $orders = [];
+
+        while($data = $result->fetch(PDO::FETCH_OBJ)){
+            $order = new OrdersEntity();
+            $order->setIdOrder($data->id);
+            $order->setEmailUser($data->email_user);
+            $order->setDeliveryPrice($data->delivery_price);
+            $order->setPrice($data->price);
+            $order->setCmdLine(json_decode($data->cmd_line));
+            $order->setState($data->state);
+            $order->setCreatedat($data->createdat);
+            $order->setDelivery(json_decode($data->delivery));
+
+            $orders[] = $order;
+            //array_push($orders, $order);
+        }
+
+        if($orders){
+            return $orders;
+        }else{
+            return FALSE;
+        }
+
+
+    } catch (PDOException $th) {
+        return NULL;
+    }
+    }
     
 
      /**
@@ -378,31 +440,24 @@ class DataLayer{
      * @return NULL Exception déclenchée
      */
     function updateUsers(UserEntity $user){
-        $sql ="UPDATE ".DB_NAME.".`customers` SET ";
-        try {
-            $sql .= " Pseudo = '".$user->getPseudo()."',";
-            $sql .= " email = '".$user->getEmail()."',";
-            $sql .= " sexe = '".$user->getSexe()."',";
-            $sql .= " firstname = '".$user->getFirstname()."',";
-            $sql .= " lastname = '".$user->getLastname()."',";
-            $sql .= " adresse_facturation = '".$user->getAdresseFactutation()."',";
-            $sql .= " adresse_livraison = '".$user->getAdresseLivraison()."'";
-
-            $sql .= " WHERE id=".$user->getIdUser(); 
-
+         $sql = "UPDATE ".DB_NAME.".`customers` SET `firstname`=:firstname, `lastname`=:lastname WHERE email=:email";
+         try {
             $result = $this->connexion->prepare($sql);
-            $var = $result->execute();
-            //var_dump($sql); exit();
+            $var = $result->execute(array(
+                ':firstname' => $user->getFirstname(),
+                ':lastname' => $user->getLastname(), 
+                ':email'=> $user->getEmail(),              
+            ));
             if($var){
                 return TRUE;
             }else{
                 return FALSE;
             }
-
-
         } catch (PDOException $th) {
             return NULL;
         }
+
+
     }
 
     /**
@@ -593,7 +648,272 @@ class DataLayer{
         }
     }
 
+    /**
+     * Methode permettant de mettre à jour des données d'un utilisateur dans BD 
+     * @param UserEntity $user Objet métier décrivant un utilisateur
+     * @return TRUE Mise à jour réussie
+     * @return FALSE Echec de la mise à jour
+     * @return NULL Exception déclenchée
+     */
+    function updateUserDeliveriesAddress(UserEntity $user){
+
+         $sql = "UPDATE ".DB_NAME.".`customers` SET `delivery_address`=:delivery_address WHERE email=:email";
+         try {
+            $result = $this->connexion->prepare($sql);
+            $var = $result->execute(array(
+                ':email'=>$user->getEmail(),
+                ':delivery_address' => $user->getDeliveryAddress(),           
+            ));
+            if($var){
+                return TRUE;
+            }else{
+                return FALSE;
+            }
+        } catch (PDOException $th) {
+            return NULL;
+        } 
+
+    }
+
+
+    /**
+     * Methode permettant de mettre à jour des données d'un utilisateur dans BD 
+     * @param UserEntity $user Objet métier décrivant un utilisateur
+     * @return TRUE Mise à jour réussie
+     * @return FALSE Echec de la mise à jour
+     * @return NULL Exception déclenchée
+     */
+    function getUserDeliveriesAddress($userEmail){
+        
+        //echo  $sql;exit();
+        $sql = "SELECT * FROM ".DB_NAME.".`customers` WHERE email=:userEmail";
+        try {
+            $result = $this->connexion->prepare($sql);
+            $var = $result->execute(array(":userEmail"=>$userEmail));
+            // $users=[];
+
+            if ($var) {
+            $data = $result->fetch(PDO::FETCH_OBJ);
+            // $user = new UserEntity();
+            // $user->setDeliveryAddress(json_decode($data->delivery_address));
+
+            $users= json_decode($data->delivery_address);
+            }
+            
+            //array_push($orders, $order);
+        
+
+        if($users){
+            return $users;
+        }else{
+            return FALSE;
+        }
+
+        } catch (PDOException $th) {
+            return NULL;
+        }
+
+    }
+
+    /**
+     * Methode permettant de récupérer les commandes dans BD 
+     * @param VOID ne prend pas de paramètre
+     * @return ARRAY Tableau contenant les commande
+     * @return FALSE Echec de la persistance
+     * @return NULL Exception déclenchée
+     */
+    function getCountries(){
+        $sql = "SELECT * FROM ".DB_NAME.".`country`";
+
+        try {
+            $result = $this->connexion->prepare($sql);
+            $var = $result->execute();
+            $countries = [];
+
+            while($data = $result->fetch(PDO::FETCH_OBJ)){
+                $country = new CountryEntity();
+                $country->setId($data->id);
+                $country->setName($data->name);
+                $country->setIdDeliveryZone($data->idDeliveryZone);
+                $country->setCode($data->code);
+
+                $countries[] = $country;
+            }
+
+            if($countries){
+                return $countries;
+            }else{
+                return FALSE;
+            }
+
+
+        } catch (PDOException $th) {
+            return NULL;
+        }
+    }
+
+    /**
+     * Methode permettant de récupérer les commandes dans BD 
+     * @param VOID ne prend pas de paramètre
+     * @return ARRAY Tableau contenant les commande
+     * @return FALSE Echec de la persistance
+     * @return NULL Exception déclenchée
+     */
+    function getDeliveriesZone(){
+        $sql = "SELECT * FROM ".DB_NAME.".`delivery_zone`";
+
+        try {
+            $result = $this->connexion->prepare($sql);
+            $var = $result->execute();
+            $deliveriesZone = [];
+
+            while($data = $result->fetch(PDO::FETCH_OBJ)){
+                $deliveryZone = new DeliveryZoneEntity();
+                $deliveryZone->setId($data->id);
+                $deliveryZone->setName($data->name);
+                $deliveryZone->setDescription($data->description);
+
+                $deliveriesZone[] = $deliveryZone;
+            }
+
+            if($deliveriesZone){
+                return $deliveriesZone;
+            }else{
+                return FALSE;
+            }
+
+
+        } catch (PDOException $th) {
+            return NULL;
+        }
+    }
+
+    function getDeliveryPrice($idDeliveryZone,$cartWeight){
+        switch ($idDeliveryZone) {
+            case 1:
+                if ($cartWeight>0 && $cartWeight<=3) {
+                    return 10;
+                }elseif ($cartWeight<=5) {
+                    return 15;
+                }elseif ($cartWeight<=7) {
+                    return 25;
+                }elseif ($cartWeight>7) {
+                    return 30;
+                }else{
+                    return 0;
+                }
+                break;
+            case 2:
+                if ($cartWeight>0 && $cartWeight<=1) {
+                    return 20;
+                }elseif ($cartWeight<=2) {
+                    return 33;
+                }elseif ($cartWeight<=5) {
+                    return 53;
+                }elseif ($cartWeight<=7) {
+                    return 60;
+                }elseif ($cartWeight>7) {
+                    return 65;
+                }else{
+                    return 0;
+                }
+                break;
+            case 3:
+                if ($cartWeight>0 && $cartWeight<=1) {
+                    return 17;
+                }elseif ($cartWeight<=2) {
+                    return 20;
+                }elseif ($cartWeight<=5) {
+                    return 25;
+                }elseif ($cartWeight<=7) {
+                    return 30;
+                }elseif ($cartWeight>7) {
+                    return 35;
+                }else{
+                    return 0;
+                }
+                break;
+            case 4:
+                if ($cartWeight>0 && $cartWeight<=1) {
+                    return 25;
+                }elseif ($cartWeight<=2) {
+                    return 27;
+                }elseif ($cartWeight<=5) {
+                    return 35;
+                }elseif ($cartWeight<=7) {
+                    return 40;
+                }elseif ($cartWeight>7) {
+                    return 50;
+                }else{
+                    return 0;
+                }
+                break;
+            case 5:
+                if ($cartWeight>0 && $cartWeight<=1) {
+                    return 35;
+                }elseif ($cartWeight<=2) {
+                    return 45;
+                }elseif ($cartWeight<=5) {
+                    return 65;
+                }elseif ($cartWeight<=7) {
+                    return 70;
+                }elseif ($cartWeight>7) {
+                    return 80;
+                }else{
+                    return 0;
+                }
+                break;    
+            default:
+                
+                break;
+        }
+
+    }
+
+        /**
+     * Methode permettant de mettre à jour des données d'un utilisateur dans BD 
+     * @param UserEntity $user Objet métier décrivant un utilisateur
+     * @return TRUE Mise à jour réussie
+     * @return FALSE Echec de la mise à jour
+     * @return NULL Exception déclenchée
+     */
+    function getUserByEmail($userEmail){
+        
+        //echo  $sql;exit();
+        $sql = "SELECT * FROM ".DB_NAME.".`customers` WHERE email=:userEmail";
+        try {
+            $result = $this->connexion->prepare($sql);
+            $var = $result->execute(array(":userEmail"=>$userEmail));
+            // $users=[];
+
+            if ($var) {
+            $data = $result->fetch(PDO::FETCH_OBJ);
+            $user = new UserEntity();
+            $user->setFirstname($data->firstname);
+            $user->setLastname($data->lastname);
+            $user->setEmail($data->email);
+            $user->setType($data->type);
+
+
+            }
+            
+            //array_push($orders, $order);
+        
+
+        if($user){
+            return $user;
+        }else{
+            return FALSE;
+        }
+
+        } catch (PDOException $th) {
+            return NULL;
+        }
+
+    }
+
 }
+
 
 
 ?>

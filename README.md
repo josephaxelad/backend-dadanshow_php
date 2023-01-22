@@ -24,3 +24,6 @@ git clone https://github.com/espero-soft/Backend-ecommerce.git
 	- Modifier le mot de passe associé à l'utilisateur (si c'est défini, laisser vide le cas contraire)
 
 [Lien vers la vidéo de mise en place](https://www.youtube.com/watch?v=xSmQWPwTH-0&list=PLcjUkwa1cc3_nOi5r8wMCTNH6tz4Qo3zk&index=3&t=8s)
+
+<!-- ri)DSK1\@K2%B1~X -->
+<!-- https://dadanshow.000webhostapp.com/backend/api/products.php -->

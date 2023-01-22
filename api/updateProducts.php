@@ -25,9 +25,9 @@ try {
     $data = $db->updateProduct($product);
 
     if($data){
-        produceResult('modification réussie ;');
+        produceResult($data);
     }else {
-        produceError("Echec de la mise à jour. Merci de réessayer !");
+        produceError($data);
     }
 } catch (Exception $th) {
     produceError($th->getMessage());

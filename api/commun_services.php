@@ -63,6 +63,7 @@ function clearData($objetMetier){
 
     foreach ($objetMetier as $key => $value) {
         $result[substr($key,3)]= $value;
+        // $result[$key]= $value;
     }
     return $result;
 }
@@ -74,6 +75,34 @@ function clearDataArray($array_obj_met){
     }
     return $result;
 }
+
+// 
+function clearData_($objetMetier){
+    $objetMetier = (array)$objetMetier;
+
+    $result=[];
+
+    foreach ($objetMetier as $key => $value) {
+        // $result[substr($key,3)]= $value;
+        $result[$key]= $value;
+    }
+    return $result;
+}
+
+function clearDataArray_($array_obj_met){
+    $result = [];
+    foreach ($array_obj_met as $key => $value) {
+        $result[$key] = clearData_($value);
+    }
+    return $result;
+}
+
+function returnResult($data){
+
+    return $data;
+
+}
+// 
 
 function controlAccess(){
     global $_REQUEST;
